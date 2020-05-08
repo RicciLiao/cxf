@@ -120,10 +120,6 @@
             <optional>true</optional>
         </dependency>
         <dependency>
-            <groupId>org.apache.ant</groupId>
-            <artifactId>ant</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.sonatype.plexus</groupId>
             <artifactId>plexus-build-api</artifactId>
             <version>0.0.7</version>
@@ -185,10 +181,12 @@
                                 <pomInclude>jdk-cxf-with-toolchain</pomInclude>
                                 <pomInclude>wsdl-artifact-resolution/pom.xml</pomInclude>
                                 <pomInclude>mark-generated/pom.xml</pomInclude>
+                                <pomInclude>jaxb-xjc-runtime-sources/pom.xml</pomInclude>
                             </pomIncludes>
                             <settingsFile>src/it/settings.xml</settingsFile>
                             <cloneProjectsTo>${project.build.directory}/it</cloneProjectsTo>
                             <postBuildHookScript>verify</postBuildHookScript>
+                            <skipInvocation>${maven.test.skip.exec}</skipInvocation>
                         </configuration>
                     </execution>
                 </executions>

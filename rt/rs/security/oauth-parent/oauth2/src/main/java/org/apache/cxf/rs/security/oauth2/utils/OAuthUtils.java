@@ -23,14 +23,11 @@ import java.security.MessageDigest;
 import java.security.Principal;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
-import java.util.Set;
 
 import javax.security.auth.x500.X500Principal;
 import javax.servlet.http.HttpSession;
@@ -66,6 +63,8 @@ import org.apache.cxf.rt.security.crypto.MessageDigestUtils;
 import org.apache.cxf.security.LoginSecurityContext;
 import org.apache.cxf.security.SecurityContext;
 import org.apache.cxf.security.transport.TLSSessionInfo;
+
+import static java.util.stream.Collectors.toList;
 
 /**
  * Various utility methods
@@ -167,13 +166,13 @@ public final class OAuthUtils {
         return setSessionToken(mc, 0);
     }
     public static String setSessionToken(MessageContext mc, int maxInactiveInterval) {
-        return setSessionToken(mc, generateRandomTokenKey());
+        return setSessionToken(mc, generateRandomTokenKey(), maxInactiveInterval);
     }
     public static String setSessionToken(MessageContext mc, String sessionToken) {
         return setSessionToken(mc, sessionToken, 0);
     }
     public static String setSessionToken(MessageContext mc, String sessionToken, int maxInactiveInterval) {
-        return setSessionToken(mc, sessionToken, null, 0);
+        return setSessionToken(mc, sessionToken, null, maxInactiveInterval);
     }
     public static String setSessionToken(MessageContext mc, String sessionToken,
                                                 String attribute, int maxInactiveInterval) {
@@ -211,11 +210,8 @@ public final class OAuthUtils {
     public static UserSubject createSubject(SecurityContext securityContext) {
         List<String> roleNames = Collections.emptyList();
         if (securityContext instanceof LoginSecurityContext) {
-            roleNames = new ArrayList<>();
-            Set<Principal> roles = ((LoginSecurityContext)securityContext).getUserRoles();
-            for (Principal p : roles) {
-                roleNames.add(p.getName());
-            }
+            roleNames = ((LoginSecurityContext) securityContext).getUserRoles().stream().map(Principal::getName)
+                .collect(toList());
         }
         UserSubject subject = new UserSubject(securityContext.getUserPrincipal().getName(), roleNames);
         Message m = JAXRSUtils.getCurrentMessage();
@@ -240,11 +236,7 @@ public final class OAuthUtils {
     }
 
     public static List<String> convertPermissionsToScopeList(List<OAuthPermission> perms) {
-        List<String> list = new LinkedList<>();
-        for (OAuthPermission perm : perms) {
-            list.add(perm.getPermission());
-        }
-        return list;
+        return perms.stream().map(OAuthPermission::getPermission).collect(toList());
     }
 
     public static boolean isGrantSupportedForClient(Client client,
@@ -258,16 +250,11 @@ public final class OAuthUtils {
     }
 
     public static List<String> parseScope(String requestedScope) {
-        List<String> list = new LinkedList<>();
         if (requestedScope != null) {
-            String[] scopeValues = requestedScope.split(" ");
-            for (String scope : scopeValues) {
-                if (!StringUtils.isEmpty(scope)) {
-                    list.add(scope);
-                }
-            }
+            return Arrays.stream(requestedScope.split(" ")).filter(StringUtils.notEmpty()).collect(toList());
+        } else {
+            return Collections.emptyList();
         }
-        return list;
     }
 
     public static String generateRandomTokenKey() throws OAuthServiceException {
@@ -332,8 +319,7 @@ public final class OAuthUtils {
         List<String> requestScopes = parseScope(scopeParameter);
         List<String> registeredScopes = client.getRegisteredScopes();
         if (requestScopes.isEmpty()) {
-            requestScopes.addAll(registeredScopes);
-            return requestScopes;
+            return registeredScopes;
         }
         if (!validateScopes(requestScopes, registeredScopes, partialMatchScopeValidation)) {
             throw new OAuthServiceException("Unexpected scope");
@@ -443,6 +429,6 @@ public final class OAuthUtils {
     }
 
     public static String convertListOfScopesToString(List<String> registeredScopes) {
-        return String.join(", ", registeredScopes);
+        return String.join(" ", registeredScopes);
     }
 }

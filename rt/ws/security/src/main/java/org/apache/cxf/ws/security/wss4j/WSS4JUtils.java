@@ -46,6 +46,7 @@ import org.apache.cxf.service.model.EndpointInfo;
 import org.apache.cxf.ws.security.SecurityConstants;
 import org.apache.cxf.ws.security.cache.CXFEHCacheReplayCache;
 import org.apache.cxf.ws.security.tokenstore.SecurityToken;
+import org.apache.cxf.ws.security.tokenstore.TokenStoreException;
 import org.apache.cxf.ws.security.tokenstore.TokenStoreUtils;
 import org.apache.wss4j.common.cache.ReplayCache;
 import org.apache.wss4j.common.cache.ReplayCacheFactory;
@@ -69,6 +70,8 @@ import org.apache.xml.security.exceptions.XMLSecurityException;
 public final class WSS4JUtils {
 
     private static final Logger LOG = LogUtils.getL7dLogger(WSS4JUtils.class);
+
+    private static final String DEFAULT_CONFIG_FILE = "cxf-ehcache.xml";
 
     private WSS4JUtils() {
         // complete
@@ -102,7 +105,7 @@ public final class WSS4JUtils {
      */
     public static ReplayCache getReplayCache(
         SoapMessage message, String booleanKey, String instanceKey
-    ) {
+    ) throws WSSecurityException {
         boolean specified = false;
         Object o = message.getContextualProperty(booleanKey);
         if (o != null) {
@@ -115,15 +118,14 @@ public final class WSS4JUtils {
         if (!specified && MessageUtils.isRequestor(message)) {
             return null;
         }
+        
+        ReplayCache replayCache = (ReplayCache)message.getContextualProperty(instanceKey);
         Endpoint ep = message.getExchange().getEndpoint();
-        if (ep != null && ep.getEndpointInfo() != null) {
+        if (replayCache == null && ep != null && ep.getEndpointInfo() != null) {
             EndpointInfo info = ep.getEndpointInfo();
             synchronized (info) {
-                ReplayCache replayCache =
-                        (ReplayCache)message.getContextualProperty(instanceKey);
-                if (replayCache == null) {
-                    replayCache = (ReplayCache)info.getProperty(instanceKey);
-                }
+                replayCache = (ReplayCache)info.getProperty(instanceKey);
+
                 if (replayCache == null) {
                     String cacheKey = instanceKey;
                     if (info.getName() != null) {
@@ -135,7 +137,11 @@ public final class WSS4JUtils {
                         }
                     }
                     URL configFile = SecurityUtils.getConfigFileURL(message, SecurityConstants.CACHE_CONFIG_FILE,
-                                                                    "cxf-ehcache.xml");
+                            DEFAULT_CONFIG_FILE);
+                    if (configFile == null) {
+                        configFile = Loader.getResource(WSS4JUtils.class.getClassLoader(),
+                                DEFAULT_CONFIG_FILE);
+                    }
 
                     if (ReplayCacheFactory.isEhCacheInstalled()) {
                         Bus bus = message.getExchange().getBus();
@@ -147,16 +153,15 @@ public final class WSS4JUtils {
 
                     info.setProperty(instanceKey, replayCache);
                 }
-                return replayCache;
             }
         }
-        return null;
+        return replayCache;
     }
 
     public static String parseAndStoreStreamingSecurityToken(
         org.apache.xml.security.stax.securityToken.SecurityToken securityToken,
         Message message
-    ) throws XMLSecurityException {
+    ) throws XMLSecurityException, TokenStoreException {
         if (securityToken == null) {
             return null;
         }

@@ -172,8 +172,8 @@ public abstract class RedirectionBasedGrantService extends AbstractOAuthService 
         }
         // Get the requested scopes
         String providedScope = params.getFirst(OAuthConstants.SCOPE);
-        List<String> requestedScope = null;
-        List<OAuthPermission> requestedPermissions = null;
+        final List<String> requestedScope;
+        final List<OAuthPermission> requestedPermissions;
         try {
             requestedScope = OAuthUtils.getRequestedScopes(client,
                                                            providedScope,
@@ -433,9 +433,8 @@ public abstract class RedirectionBasedGrantService extends AbstractOAuthService 
 
     protected UserSubject createUserSubject(SecurityContext securityContext,
                                             MultivaluedMap<String, String> params) {
-        UserSubject subject = null;
         if (subjectCreator != null) {
-            subject = subjectCreator.createUserSubject(getMessageContext(),
+            UserSubject subject = subjectCreator.createUserSubject(getMessageContext(),
                                                        params);
             if (subject != null) {
                 return subject;

@@ -50,9 +50,9 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.apache.geronimo.specs</groupId>
-      <artifactId>geronimo-jpa_2.0_spec</artifactId>
-      <version>${cxf.geronimo.jpa.version}</version>
+      <groupId>jakarta.persistence</groupId>
+      <artifactId>jakarta.persistence-api</artifactId>
+      <version>${cxf.persistence-api.version}</version>
       <scope>provided</scope>
       <optional>true</optional>
     </dependency>
@@ -92,10 +92,6 @@
           <exclusion>
             <groupId>javax.activation</groupId>
             <artifactId>javax.activation-api</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>javax.annotation</groupId>
-            <artifactId>javax.annotation-api</artifactId>
           </exclusion>
         </exclusions> 
     </dependency>
